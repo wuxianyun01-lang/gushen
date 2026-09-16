@@ -1,0 +1,149 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>持仓监控看板</title>
+<style>
+:root{--bg:#f5f7fb;--panel:#ffffff;--line:#dfe5ef;--text:#172033;--muted:#65728a;--red:#d83a45;--green:#16875b;--blue:#2f6fed;--amber:#b7791f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.top{padding:18px 24px 10px;display:flex;justify-content:space-between;align-items:center}
+.top h1{margin:0;font-size:22px;letter-spacing:0}
+.top .time{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:14px;padding:0 24px 24px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.card h2{margin:0 0 10px;font-size:16px}
+.name-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.name-row strong{font-size:17px}
+.code{color:var(--muted);font-size:12px}
+.price{font-size:28px;font-weight:700;margin:8px 0 2px}
+.meta{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin:8px 0}
+.pill{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.pill.critical{background:#fdecec;color:#b4232a}.pill.high{background:#fff1e8;color:#9a4b13}.pill.medium{background:#fff8dd;color:#7d6413}.pill.info{background:#edf5ff;color:#2457a8}
+.progress{height:7px;background:#e9eef6;border-radius:999px;overflow:hidden;margin:10px 0}
+.progress span{display:block;height:100%;background:linear-gradient(90deg,#2f6fed,#4aa9ff)}
+.forecast{margin:10px 0 2px;padding:9px 10px;background:#f8fafc;border:1px solid #e5eaf2;border-radius:7px}
+.forecast .head{display:flex;justify-content:space-between;gap:8px;font-size:12px;margin-bottom:7px}
+.forecast .head b{font-size:13px}
+.prob{height:6px;background:#e9eef6;border-radius:999px;overflow:hidden;margin:5px 0 8px}
+.prob span{display:block;height:100%;background:linear-gradient(90deg,#16875b,#47b783);transition:width .3s}
+.forecast .grid2{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:11px;color:var(--muted)}
+.forecast .grid2 div{display:flex;justify-content:space-between;gap:6px}
+.forecast .grid2 b{color:var(--text);font-weight:600;text-align:right}
+.rows{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}
+.rows div{display:flex;justify-content:space-between;gap:10px}
+.rows b{color:var(--text);font-weight:600}
+.news{margin:16px 0 0;border-top:1px solid var(--line);padding-top:10px}
+.news-item{padding:7px 0;border-bottom:1px solid #edf1f7;font-size:12px;line-height:1.45}
+.news-item:last-child{border:0}
+.news-item small{color:var(--muted)}
+.alert-box{padding:0 24px 24px}
+.alert-box .card{padding:0}
+.alert-item{display:flex;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);font-size:13px}
+.alert-item:last-child{border:0}
+.empty{color:var(--muted);text-align:center;padding:30px 12px}
+.learning-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.learning-metrics div{background:#f8fafc;border:1px solid #e5eaf2;border-radius:7px;padding:8px;text-align:center}
+.learning-metrics b{display:block;font-size:17px;margin-bottom:2px}
+.learning-metrics span{color:var(--muted);font-size:11px}
+.lesson{padding:10px 16px;border-bottom:1px solid var(--line);font-size:12px;line-height:1.5}
+.lesson:last-child{border:0}
+.lesson b{color:var(--amber)}
+@media(max-width:700px){.grid{padding:0 12px 16px}.top{padding:14px 12px 8px}.alert-box{padding:0 12px 16px}}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>持仓监控看板</h1>
+  <div class="time" id="updated">等待数据</div>
+</div>
+<main class="grid" id="positions"></main>
+<section class="alert-box">
+  <div class="card">
+    <h2 style="padding:14px 16px 0">最近提醒</h2>
+    <div id="alerts"><div class="empty">暂无提醒</div></div>
+    <h2 style="padding:14px 16px 0">市场快讯</h2>
+    <div id="news"><div class="empty">暂无新闻</div></div>
+  </div>
+</section>
+<section class="alert-box">
+  <div class="card">
+    <h2 style="padding:14px 16px 0">自进化状态</h2>
+    <div id="learning"><div class="empty">还没有可核验的预测记录</div></div>
+  </div>
+</section>
+<script>
+async function refresh(){
+  try{
+    const r=await fetch('/api/state',{cache:'no-store'});
+    const data=await r.json();
+    document.getElementById('updated').textContent='更新 '+data.updated_at;
+    renderPositions(data.positions||[]);
+    renderAlerts(data.alerts||[]);
+    renderNews(data.news||[]);
+    renderLearning(data.learning||{});
+  }catch(e){}
+}
+function cls(sev){return sev==='critical'||sev==='high'?'critical':sev==='medium'?'medium':'info'}
+function renderPositions(list){
+  const root=document.getElementById('positions'); root.innerHTML='';
+  list.forEach(p=>{
+    const loss=p.pnl_pct<0;
+    const card=document.createElement('article'); card.className='card';
+    card.innerHTML=`
+      <div class="name-row"><div><strong>${p.name}</strong><div class="code">${p.code}</div></div><span class="pill ${cls(p.severity)}">${p.action}</span></div>
+      <div class="price">${typeof p.price==='number'?p.price.toFixed(3):p.price}</div>
+      <div class="meta"><span>盈亏 ${loss?'-':''}${Math.abs(p.pnl).toFixed(2)}</span><span style="color:${loss?'var(--red)':'var(--green)'}">${p.pnl_pct.toFixed(2)}%</span></div>
+      <div class="progress"><span style="width:${Math.max(0,Math.min(100,p.distance_pct*20))}%"></span></div>
+      <div class="rows">
+        <div><span>目标</span><b>${typeof p.target==='number'?p.target.toFixed(3):p.target}</b></div>
+        <div><span>距目标</span><b>${p.distance_pct.toFixed(2)}%</b></div>
+        ${p.indicators&&p.indicators.rsi14!=null?`<div><span>RSI / MA5</span><b>${p.indicators.rsi14} / ${p.indicators.ma5??'-'}</b></div>`:''}
+        <div><span>大师视角</span><b>${p.master.summary}</b></div>
+        <div><span>信号说明</span><b>${p.message}</b></div>
+        ${p.prediction?`
+          <div class="forecast">
+            <div class="head"><b>${p.prediction.action}</b><span>${p.prediction.horizon}</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted)"><span>上涨概率</span><b style="color:var(--text)">${(p.prediction.up_probability*100).toFixed(1)}%</b></div>
+            <div class="prob"><span style="width:${(p.prediction.up_probability*100).toFixed(1)}%"></span></div>
+            <div class="grid2">
+              <div><span>预期收益</span><b>${p.prediction.expected_return_pct.toFixed(2)}%</b></div>
+              <div><span>风险收益比</span><b>${p.prediction.risk_reward.toFixed(2)}</b></div>
+              <div><span>波动率</span><b>${p.prediction.volatility_pct.toFixed(2)}%</b></div>
+              <div><span>模型置信度</span><b>${(p.prediction.confidence*100).toFixed(0)}%</b></div>
+              <div><span>舆情</span><b>${p.prediction.sentiment.score>0?'偏多':p.prediction.sentiment.score<0?'偏空':'中性'}</b></div>
+              <div><span>大师判定</span><b>${p.prediction.master.stance}</b></div>
+            </div>
+            ${p.prediction.trigger?`<div style="margin-top:7px;font-size:11px;color:var(--muted)"><span>触发条件</span> <b>${p.prediction.trigger}</b></div>`:''}
+          </div>`:''}
+      </div>`;
+    root.appendChild(card);
+  });
+}
+function renderAlerts(list){const el=document.getElementById('alerts');if(!list.length){el.innerHTML='<div class="empty">暂无提醒</div>';return}el.innerHTML=list.map(a=>`<div class="alert-item"><div><b>${a.name}</b> · ${a.action}</div><div>${a.time}<br>${a.message}</div></div>`).join('');}
+function renderNews(list){const el=document.getElementById('news');if(!list.length){el.innerHTML='<div class="empty">暂无新闻</div>';return}el.innerHTML=list.map(n=>`<div class="news-item"><b>${n.title}</b><br>${n.digest||''}<br><small>${n.time||''}</small></div>`).join('');}
+function renderLearning(data){
+  const el=document.getElementById('learning'); if(!el)return;
+  const fmt=v=>v==null?'-':(typeof v==='number'&&!Number.isInteger(v)?v.toFixed(3):v);
+  const lessons=(data.recent_lessons||[]).map(l=>`<div class="lesson"><b>${l.mistake_type}</b> · ${l.name||l.code}<br>${l.summary||''}<br><small>${l.correction||''}</small></div>`).join('');
+  const profiles=Object.entries(data.profiles||{}).map(([code,p])=>`<div class="news-item"><b>${code}</b> · 样本 ${p.samples||0} · 正确 ${p.correct||0}<br><small>概率修正 ${(p.probability_bias||0).toFixed(3)} · 置信修正 ${(p.confidence_adjust||0).toFixed(3)}</small></div>`).join('');
+  el.innerHTML=`
+    <div class="learning-metrics">
+      <div><b>${data.total_predictions||0}</b><span>累计预测</span></div>
+      <div><b>${data.resolved||0}</b><span>已核验</span></div>
+      <div><b>${data.pending||0}</b><span>待核验</span></div>
+      <div><b>${data.direction_accuracy==null?'-':(data.direction_accuracy*100).toFixed(1)+'%'}</b><span>方向准确率</span></div>
+      <div><b>${fmt(data.mean_abs_error_pct)}%</b><span>平均误差</span></div>
+      <div><b>${fmt(data.brier_score)}</b><span>Brier分数</span></div>
+    </div>
+    <h2 style="padding:12px 16px 0">模型教训</h2>
+    ${lessons||'<div class="empty">暂无教训</div>'}
+    <h2 style="padding:12px 16px 0">各标的校准</h2>
+    ${profiles||'<div class="empty">暂无校准数据</div>'}`;
+}
+refresh();setInterval(refresh,30000);
+</script>
+</body>
+</html>

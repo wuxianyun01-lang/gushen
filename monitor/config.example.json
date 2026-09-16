@@ -1,0 +1,117 @@
+{
+  "holdings": [
+    {
+      "code": "513330",
+      "market": "sh",
+      "name": "恒生互联网ETF",
+      "type": "etf",
+      "shares": 38500,
+      "cost": 0.444,
+      "baseline_price": 0.363,
+      "support": 0.355,
+      "resistance": 0.383,
+      "masters": [
+        "buffett",
+        "graham",
+        "rossman"
+      ],
+      "keywords": [
+        "腾讯",
+        "阿里巴巴",
+        "港股互联网",
+        "恒生科技"
+      ]
+    },
+    {
+      "code": "563530",
+      "market": "sh",
+      "name": "卫星ETF",
+      "type": "etf",
+      "shares": 1600,
+      "cost": 1.376,
+      "baseline_price": 1.089,
+      "support": 1.06,
+      "resistance": 1.12,
+      "masters": [
+        "lynch",
+        "friess",
+        "oelschlager"
+      ],
+      "keywords": [
+        "卫星",
+        "商业航天",
+        "低轨",
+        "军工"
+      ]
+    },
+    {
+      "code": "600905",
+      "market": "sh",
+      "name": "三峡能源",
+      "type": "stock",
+      "shares": 1000,
+      "cost": 3.874,
+      "baseline_price": 3.67,
+      "support": 3.65,
+      "resistance": 3.75,
+      "masters": [
+        "buffett",
+        "graham",
+        "sivy"
+      ],
+      "keywords": [
+        "三峡能源",
+        "风电",
+        "新能源",
+        "增持"
+      ]
+    },
+    {
+      "code": "015790",
+      "market": "fund",
+      "name": "永赢高端装备C",
+      "type": "fund",
+      "amount": 9031.95,
+      "cost_amount": 11000,
+      "baseline_amount": 9031.95,
+      "masters": [
+        "lynch",
+        "friess",
+        "oelschlager"
+      ],
+      "keywords": [
+        "永赢",
+        "高端装备",
+        "军工",
+        "航天"
+      ]
+    }
+  ],
+  "monitoring": {
+    "quote_interval_seconds": 60,
+    "fund_interval_seconds": 600,
+    "news_interval_seconds": 1800,
+    "dashboard_port": 8765
+  },
+  "prediction": {
+    "enabled": true,
+    "confidence_threshold": 0.62,
+    "history_days": 90,
+    "weights": {
+      "master": 1,
+      "sentiment": 0.15,
+      "trend": 0.1
+    }
+  },
+  "notification": {
+    "windows": true,
+    "qq_email": {
+      "enabled": true,
+      "smtp_server": "smtp.qq.com",
+      "smtp_port": 587,
+      "sender": "你的QQ号@qq.com",
+      "receiver": "你的QQ号@qq.com",
+      "auth_code": "在此填写QQ邮箱SMTP授权码"
+    }
+  }
+}

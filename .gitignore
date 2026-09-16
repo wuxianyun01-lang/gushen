@@ -1,0 +1,26 @@
+# 敏感配置（含邮箱授权码，禁止提交）
+monitor/config.json
+
+# 运行时数据与个人交易记录
+reports/latest.json
+reports/memory/
+monitor/.monitor-*.log
+
+# Python 缓存
+__pycache__/
+*/__pycache__/
+
+# 第三方项目 TradingAgents-CN（仅作运行环境，含 .env 密钥，不纳入本项目）
+TradingAgents-CN/
+
+# 临时目录
+.playwright-cli/
+
+# 运行时日志与一次性检查快照
+monitor/.monitor.log
+monitor/once-check.json
+
+
+# 运行时日志
+logs/
+
